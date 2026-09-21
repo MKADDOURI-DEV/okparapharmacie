@@ -35,7 +35,7 @@ export default function ProductCard({ product, className = '' }: ProductCardProp
   };
 
   return (
-    <Link href="/product-detail" className={`group block bg-card rounded-2xl border border-border overflow-hidden product-card-hover ${className}`}>
+    <Link href={`/product-detail?slug=${product.slug}`} className={`group block bg-card rounded-2xl border border-border overflow-hidden product-card-hover ${className}`}>
       <div className="relative image-zoom bg-muted aspect-square overflow-hidden">
         <AppImage
           src={product.image}

@@ -1,7 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Tableau de bord', icon: '📊', exact: true },
@@ -17,7 +18,19 @@ const NAV_ITEMS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push('/admin/login');
+    router.refresh();
+  };
 
   const isActive = (item: { href: string; exact?: boolean }) => {
     if (item.exact) return pathname === item.href;
@@ -114,9 +127,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </svg>
               </button>
             </div>
-            <div className="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-white text-xs font-bold">
+            <button
+              onClick={handleLogout}
+              title="Se déconnecter"
+              className="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-white text-xs font-bold hover:bg-emerald-800 transition-colors"
+            >
               A
-            </div>
+            </button>
           </div>
         </header>
 

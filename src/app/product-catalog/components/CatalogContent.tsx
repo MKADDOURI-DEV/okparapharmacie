@@ -1,9 +1,10 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
 import Icon from '@/components/ui/AppIcon';
-import { PRODUCTS, CATEGORIES } from '@/lib/mockData';
+import { fetchActiveProducts, fetchCategories } from '@/lib/supabase/adapters';
+import type { Product, Category } from '@/lib/mockData';
 
 const SORT_OPTIONS = [
   { value: 'featured', label: 'Recommandés' },
@@ -17,6 +18,9 @@ const SORT_OPTIONS = [
 const ITEMS_PER_PAGE = 12;
 
 export default function CatalogContent() {
+  const [PRODUCTS, setProducts] = useState<Product[]>([]);
+  const [CATEGORIES, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
@@ -26,6 +30,14 @@ export default function CatalogContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    Promise.all([fetchActiveProducts(), fetchCategories()]).then(([products, categories]) => {
+      setProducts(products);
+      setCategories(categories);
+      setLoading(false);
+    });
+  }, []);
 
   const filteredProducts = useMemo(() => {
     let result = [...PRODUCTS];
@@ -58,7 +70,7 @@ export default function CatalogContent() {
     }
 
     return result;
-  }, [selectedCategories, selectedBrands, priceRange, inStockOnly, discountOnly, sortBy, searchQuery]);
+  }, [PRODUCTS, selectedCategories, selectedBrands, priceRange, inStockOnly, discountOnly, sortBy, searchQuery]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
   const paginatedProducts = filteredProducts.slice(
@@ -372,7 +384,11 @@ export default function CatalogContent() {
             </div>
 
             {/* Products Grid */}
-            {paginatedProducts.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
+                Chargement des produits...
+              </div>
+            ) : paginatedProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
                   <Icon name="MagnifyingGlassIcon" size={32} className="text-muted-foreground" />

@@ -1,13 +1,18 @@
 'use client';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
-import { PRODUCTS } from '@/lib/mockData';
+import { fetchActiveProducts } from '@/lib/supabase/adapters';
+import type { Product } from '@/lib/mockData';
 import Icon from '@/components/ui/AppIcon';
 
 export default function BestsellersSection() {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const bestsellers = PRODUCTS.filter(p => p.isBestseller || p.isNew);
+  const [bestsellers, setBestsellers] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetchActiveProducts().then((products) => setBestsellers(products.slice(0, 10)));
+  }, []);
 
   const scroll = (dir: 'left' | 'right') => {
     if (!scrollRef.current) return;

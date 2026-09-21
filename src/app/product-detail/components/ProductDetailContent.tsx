@@ -1,10 +1,13 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
 import ProductCard from '@/components/ProductCard';
-import { PRODUCTS, WHATSAPP_NUMBER } from '@/lib/mockData';
+import { WHATSAPP_NUMBER } from '@/lib/mockData';
+import type { Product } from '@/lib/mockData';
+import { fetchProductBySlug, fetchActiveProducts } from '@/lib/supabase/adapters';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { useToast } from '@/context/ToastContext';
@@ -46,8 +49,12 @@ const REVIEWS = [
 
 
 export default function ProductDetailContent() {
-  const product = PRODUCTS[0];
-  const relatedProducts = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const searchParams = useSearchParams();
+  const slug = searchParams.get('slug');
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -57,6 +64,42 @@ export default function ProductDetailContent() {
   const { dispatch: cartDispatch } = useCart();
   const { dispatch: wishDispatch, isWishlisted } = useWishlist();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const all = await fetchActiveProducts();
+      const found = slug ? await fetchProductBySlug(slug) : null;
+      const current = found ?? all[0] ?? null;
+      if (cancelled) return;
+      setProduct(current);
+      setRelatedProducts(
+        current ? all.filter((p) => p.category === current.category && p.id !== current.id).slice(0, 4) : []
+      );
+      setActiveImage(0);
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">
+        Chargement du produit...
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
+        <h1 className="font-display text-xl font-semibold text-foreground mb-2">Produit introuvable</h1>
+        <Link href="/product-catalog" className="text-primary text-sm underline">Retour au catalogue</Link>
+      </div>
+    );
+  }
+
   const wishlisted = isWishlisted(product.id);
 
   const images = product.images || [product.image];

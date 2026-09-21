@@ -1,11 +1,17 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
-import { CATEGORIES } from '@/lib/mockData';
+import { fetchCategories } from '@/lib/supabase/adapters';
+import type { Category } from '@/lib/mockData';
 
 export default function CategoriesSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const [CATEGORIES, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    fetchCategories().then(setCategories);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

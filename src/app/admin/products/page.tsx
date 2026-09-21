@@ -1,35 +1,63 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { PRODUCTS, Product } from '@/lib/mockData';
-
-const STATUS_BADGE: Record<string, string> = {
-  true: 'bg-emerald-50 text-emerald-700',
-  false: 'bg-gray-100 text-gray-500',
-};
+import { createClient } from '@/lib/supabase/client';
+import type { ProduitRow, CategorieRow, MarqueRow } from '@/lib/supabase/types';
 
 export default function AdminProductsPage() {
+  const supabase = createClient();
+  const [products, setProducts] = useState<ProduitRow[]>([]);
+  const [categories, setCategories] = useState<CategorieRow[]>([]);
+  const [marques, setMarques] = useState<MarqueRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const PER_PAGE = 8;
 
-  const filtered = PRODUCTS.filter((p) => {
-    const matchSearch =
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.brand.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku || '').toLowerCase().includes(search.toLowerCase());
-    const matchCat = !categoryFilter || p.category === categoryFilter;
-    const matchBrand = !brandFilter || p.brand === brandFilter;
+  const loadData = async () => {
+    setLoading(true);
+    const [{ data: prods }, { data: cats }, { data: brs }] = await Promise.all([
+      supabase
+        .from('produits')
+        .select('*, categories(*), marques(*)')
+        .order('created_at', { ascending: false }),
+      supabase.from('categories').select('*').order('ordre'),
+      supabase.from('marques').select('*').order('nom'),
+    ]);
+    setProducts((prods as ProduitRow[]) ?? []);
+    setCategories(cats ?? []);
+    setMarques(brs ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleDelete = async (id: string, nom: string) => {
+    if (!confirm(`Supprimer "${nom}" ? Cette action est irréversible.`)) return;
+    setDeletingId(id);
+    const { error } = await supabase.from('produits').delete().eq('id', id);
+    setDeletingId(null);
+    if (error) {
+      alert('Erreur lors de la suppression: ' + error.message);
+      return;
+    }
+    setProducts((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const filtered = products.filter((p) => {
+    const matchSearch = p.nom.toLowerCase().includes(search.toLowerCase());
+    const matchCat = !categoryFilter || p.category_id === categoryFilter;
+    const matchBrand = !brandFilter || p.marque_id === brandFilter;
     return matchSearch && matchCat && matchBrand;
   });
 
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-
-  const uniqueCategories = Array.from(new Set(PRODUCTS.map((p) => p.category)));
-  const uniqueBrands = Array.from(new Set(PRODUCTS.map((p) => p.brand)));
 
   return (
     <div className="space-y-5">
@@ -37,7 +65,7 @@ export default function AdminProductsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Produits</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{PRODUCTS.length} produits au total</p>
+          <p className="text-sm text-gray-500 mt-0.5">{products.length} produits au total</p>
         </div>
         <Link
           href="/admin/products/new"
@@ -57,7 +85,7 @@ export default function AdminProductsPage() {
             </svg>
             <input
               type="text"
-              placeholder="Rechercher par nom, marque, SKU..."
+              placeholder="Rechercher par nom..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
@@ -69,7 +97,7 @@ export default function AdminProductsPage() {
             className="text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
           >
             <option value="">Toutes les catégories</option>
-            {uniqueCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
           <select
             value={brandFilter}
@@ -77,7 +105,7 @@ export default function AdminProductsPage() {
             className="text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white"
           >
             <option value="">Toutes les marques</option>
-            {uniqueBrands.map((b) => <option key={b} value={b}>{b}</option>)}
+            {marques.map((b) => <option key={b.id} value={b.id}>{b.nom}</option>)}
           </select>
         </div>
       </div>
@@ -98,7 +126,11 @@ export default function AdminProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {paginated.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-gray-400">Chargement...</td>
+                </tr>
+              ) : paginated.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
                     <div className="text-3xl mb-2">📦</div>
@@ -106,56 +138,46 @@ export default function AdminProductsPage() {
                   </td>
                 </tr>
               ) : (
-                paginated.map((product: Product) => (
+                paginated.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-cover"
-                          />
+                          {product.images?.[0] ? (
+                            <img src={product.images[0]} alt={product.nom} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-300">📦</div>
+                          )}
                         </div>
                         <div className="min-w-0">
-                          <p className="font-medium text-gray-900 truncate max-w-[180px]">{product.name}</p>
-                          <p className="text-xs text-gray-400 font-mono">{product.sku}</p>
+                          <p className="font-medium text-gray-900 truncate max-w-[180px]">{product.nom}</p>
+                          <p className="text-xs text-gray-400 font-mono truncate max-w-[180px]">{product.slug}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-gray-600 hidden md:table-cell">{product.category}</td>
-                    <td className="px-5 py-4 text-gray-600 hidden lg:table-cell">{product.brand}</td>
+                    <td className="px-5 py-4 text-gray-600 hidden md:table-cell">{product.categories?.nom ?? '—'}</td>
+                    <td className="px-5 py-4 text-gray-600 hidden lg:table-cell">{product.marques?.nom ?? '—'}</td>
                     <td className="px-5 py-4 text-right">
-                      <span className="font-semibold text-gray-900">{product.price} DH</span>
-                      {product.oldPrice && (
-                        <span className="block text-xs text-gray-400 line-through">{product.oldPrice} DH</span>
+                      <span className="font-semibold text-gray-900">{product.prix} DH</span>
+                      {product.prix_promo && (
+                        <span className="block text-xs text-gray-400 line-through">{product.prix_promo} DH</span>
                       )}
                     </td>
                     <td className="px-5 py-4 text-center hidden sm:table-cell">
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${product.inStock ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
-                        {product.inStock ? 'En stock' : 'Rupture'}
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${product.stock > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'}`}>
+                        {product.stock > 0 ? `${product.stock} en stock` : 'Rupture'}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {product.isFeatured && (
-                          <span className="text-xs bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">Vedette</span>
-                        )}
-                        {product.isBestseller && (
-                          <span className="text-xs bg-violet-50 text-violet-700 px-1.5 py-0.5 rounded-full font-medium">Best</span>
-                        )}
-                        {product.isNew && (
-                          <span className="text-xs bg-sky-50 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">Nouveau</span>
-                        )}
-                        {!product.isFeatured && !product.isBestseller && !product.isNew && (
-                          <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">Standard</span>
-                        )}
-                      </div>
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${product.actif ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {product.actif ? 'Actif' : 'Inactif'}
+                      </span>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1">
                         <Link
                           href={`/product-detail?slug=${product.slug}`}
+                          target="_blank"
                           className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Voir"
                         >
@@ -164,16 +186,19 @@ export default function AdminProductsPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </Link>
-                        <button
+                        <Link
+                          href={`/admin/products/${product.id}/edit`}
                           className="p-1.5 text-gray-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
                           title="Modifier"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
-                        </button>
+                        </Link>
                         <button
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          onClick={() => handleDelete(product.id, product.nom)}
+                          disabled={deletingId === product.id}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
                           title="Supprimer"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,7 +234,7 @@ export default function AdminProductsPage() {
                   onClick={() => setPage(p)}
                   className={`w-8 h-8 text-sm rounded-lg border transition-colors ${
                     p === page
-                      ? 'bg-emerald-700 text-white border-emerald-700' :'border-gray-200 text-gray-600 hover:bg-gray-100'
+                      ? 'bg-emerald-700 text-white border-emerald-700' : 'border-gray-200 text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   {p}

@@ -1,11 +1,17 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ProductCard from '@/components/ProductCard';
-import { PRODUCTS } from '@/lib/mockData';
+import { fetchActiveProducts } from '@/lib/supabase/adapters';
+import type { Product } from '@/lib/mockData';
 
 export default function FeaturedProductsSection() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const [featured, setFeatured] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetchActiveProducts().then((products) => setFeatured(products.slice(0, 4)));
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -21,8 +27,6 @@ export default function FeaturedProductsSection() {
     if (sectionRef?.current) observer?.observe(sectionRef?.current);
     return () => observer?.disconnect();
   }, []);
-
-  const featured = PRODUCTS?.filter(p => p?.isFeatured)?.slice(0, 4);
 
   return (
     <section ref={sectionRef} className="py-16 bg-background">
