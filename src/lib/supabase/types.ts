@@ -34,6 +34,37 @@ export interface ProduitRow {
   marques?: MarqueRow | null;
 }
 
+export interface PromotionRow {
+  id: string;
+  code: string;
+  type: 'pourcentage' | 'montant_fixe';
+  valeur: number;
+  date_debut: string;
+  date_fin: string;
+  actif: boolean;
+  created_at: string;
+}
+
+export interface CommandeRow {
+  id: string;
+  client_id: string | null;
+  statut: 'en_attente' | 'confirmee' | 'en_cours' | 'expediee' | 'livree' | 'annulee';
+  total: number;
+  adresse: string | null;
+  created_at: string;
+  clients?: ClientRow | null;
+}
+
+export interface ClientRow {
+  id: string;
+  user_id: string | null;
+  nom: string;
+  email: string;
+  telephone: string | null;
+  adresse: string | null;
+  created_at: string;
+}
+
 export function slugify(text: string): string {
   return text
     .toString()

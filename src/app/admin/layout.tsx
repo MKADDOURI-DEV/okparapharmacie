@@ -1,8 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import NotificationsBell from './NotificationsBell';
+import AdminProfileMenu from './AdminProfileMenu';
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Tableau de bord', icon: '📊', exact: true },
@@ -18,19 +20,22 @@ const NAV_ITEMS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState(0);
+
+  useEffect(() => {
+    if (pathname === '/admin/login') return;
+    const supabase = createClient();
+    supabase
+      .from('commandes')
+      .select('id', { count: 'exact', head: true })
+      .eq('statut', 'en_attente')
+      .then(({ count }) => setPendingOrders(count ?? 0));
+  }, [pathname]);
 
   if (pathname === '/admin/login') {
     return <>{children}</>;
   }
-
-  const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push('/admin/login');
-    router.refresh();
-  };
 
   const isActive = (item: { href: string; exact?: boolean }) => {
     if (item.exact) return pathname === item.href;
@@ -80,9 +85,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 >
                   <span className="text-base">{item.icon}</span>
                   {item.label}
-                  {item.href === '/admin/orders' && (
+                  {item.href === '/admin/orders' && pendingOrders > 0 && (
                     <span className="ml-auto bg-amber-100 text-amber-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">
-                      5
+                      {pendingOrders}
                     </span>
                   )}
                 </Link>
@@ -119,21 +124,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="hidden lg:block" />
 
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full" />
-              <button className="p-2 rounded-lg text-gray-500 hover:bg-gray-100">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-              </button>
-            </div>
-            <button
-              onClick={handleLogout}
-              title="Se déconnecter"
-              className="w-8 h-8 rounded-full bg-emerald-700 flex items-center justify-center text-white text-xs font-bold hover:bg-emerald-800 transition-colors"
-            >
-              A
-            </button>
+            <NotificationsBell />
+            <AdminProfileMenu />
           </div>
         </header>
 
