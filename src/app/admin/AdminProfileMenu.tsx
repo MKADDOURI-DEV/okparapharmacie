@@ -51,7 +51,7 @@ export default function AdminProfileMenu() {
           )}
           <div className="py-1">
             <Link
-              href="/admin/settings"
+              href="/admin/profile"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
