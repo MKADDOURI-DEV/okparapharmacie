@@ -45,7 +45,8 @@ export default function AdminHomepagePage() {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
-    const { error: saveError } = await supabase
+    await supabase.auth.refreshSession();
+    const { data: updated, error: saveError } = await supabase
       .from('site_settings')
       .update({
         hero_title: heroTitle,
@@ -54,10 +55,15 @@ export default function AdminHomepagePage() {
         sections,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', 1);
+      .eq('id', 1)
+      .select();
     setSaving(false);
     if (saveError) {
       setError(saveError.message);
+      return;
+    }
+    if (!updated || updated.length === 0) {
+      setError("Échec de l'enregistrement — votre session a peut-être expiré. Déconnectez-vous puis reconnectez-vous et réessayez.");
       return;
     }
     setSaved(true);

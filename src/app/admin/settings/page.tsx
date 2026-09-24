@@ -50,7 +50,11 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     setError(null);
-    const { error: saveError } = await supabase
+
+    // Refresh the session first in case the access token went stale
+    await supabase.auth.refreshSession();
+
+    const { data: updated, error: saveError } = await supabase
       .from('site_settings')
       .update({
         nom_boutique: form.nom_boutique,
@@ -64,10 +68,15 @@ export default function AdminSettingsPage() {
         devise: form.devise,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', 1);
+      .eq('id', 1)
+      .select();
     setSaving(false);
     if (saveError) {
       setError(saveError.message);
+      return;
+    }
+    if (!updated || updated.length === 0) {
+      setError("Échec de l'enregistrement — votre session a peut-être expiré. Déconnectez-vous puis reconnectez-vous et réessayez.");
       return;
     }
     setSaved(true);
