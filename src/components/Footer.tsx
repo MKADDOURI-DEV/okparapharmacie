@@ -1,9 +1,46 @@
-import React from 'react';
+'use client';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
+import type { SiteSettingsRow } from '@/lib/supabase/types';
+
+const DEFAULTS = {
+  telephone: '+212600000000',
+  email: 'contact@okparapharmacie.ma',
+  adresse: 'Lot Mebrouk N°7, Rue Jounaid, El Maarif, Casablanca',
+  whatsapp: '+212600000000',
+  instagram_url: 'https://www.instagram.com/ok.parapharmacie/',
+};
 
 export default function Footer() {
+  const [info, setInfo] = useState(DEFAULTS);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('site_settings')
+      .select('telephone, email, adresse, whatsapp, instagram_url')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const s = data as Partial<SiteSettingsRow> | null;
+        if (s) {
+          setInfo({
+            telephone: s.telephone || DEFAULTS.telephone,
+            email: s.email || DEFAULTS.email,
+            adresse: s.adresse || DEFAULTS.adresse,
+            whatsapp: s.whatsapp || DEFAULTS.whatsapp,
+            instagram_url: s.instagram_url || DEFAULTS.instagram_url,
+          });
+        }
+      });
+  }, []);
+
+  const waLink = `https://wa.me/${info.whatsapp.replace(/[^0-9]/g, '')}`;
+  const telLink = `tel:${info.telephone.replace(/\s/g, '')}`;
+
   return (
     <footer className="bg-foreground text-white/70 border-t border-white/10">
       <div className="max-w-7xl mx-auto px-6 py-14">
@@ -22,13 +59,13 @@ export default function Footer() {
               Votre parapharmacie en ligne au Maroc. Produits authentiques, prix compétitifs, livraison rapide.
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://www.instagram.com/ok.parapharmacie/" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-accent transition-colors" aria-label="Instagram">
+              <a href={info.instagram_url} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-accent transition-colors" aria-label="Instagram">
                 <Icon name="PhotoIcon" size={16} className="text-white" />
               </a>
               <a href="#" className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-accent transition-colors" aria-label="Facebook">
                 <Icon name="GlobeAltIcon" size={16} className="text-white" />
               </a>
-              <a href="https://wa.me/212600000000" target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-green-600 transition-colors" aria-label="WhatsApp">
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center hover:bg-green-600 transition-colors" aria-label="WhatsApp">
                 <Icon name="ChatBubbleLeftRightIcon" size={16} className="text-white" />
               </a>
             </div>
@@ -55,15 +92,15 @@ export default function Footer() {
             <div className="space-y-3 text-sm">
               <div className="flex items-start gap-2">
                 <Icon name="MapPinIcon" size={16} className="text-accent flex-shrink-0 mt-0.5" />
-                <span>Lot Mebrouk N°7, Rue Jounaid, El Maarif, Casablanca</span>
+                <span>{info.adresse}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Icon name="PhoneIcon" size={16} className="text-accent flex-shrink-0" />
-                <a href="tel:+212600000000" className="hover:text-white transition-colors">+212 600-000-000</a>
+                <a href={telLink} className="hover:text-white transition-colors">{info.telephone}</a>
               </div>
               <div className="flex items-center gap-2">
                 <Icon name="EnvelopeIcon" size={16} className="text-accent flex-shrink-0" />
-                <a href="mailto:contact@okparapharmacie.ma" className="hover:text-white transition-colors">contact@okparapharmacie.ma</a>
+                <a href={`mailto:${info.email}`} className="hover:text-white transition-colors">{info.email}</a>
               </div>
             </div>
             <div className="mt-4 p-3 bg-white/5 rounded-xl border border-white/10">

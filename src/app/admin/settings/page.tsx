@@ -12,12 +12,12 @@ export default function AdminSettingsPage() {
   const [version, setVersion] = useState(0);
 
   const [form, setForm] = useState({
-    nom_boutique: '',
-    email: '',
-    telephone: '',
-    whatsapp: '',
-    adresse: '',
-    instagram_url: '',
+    nom_boutique: 'OK Parapharmacie',
+    email: 'contact@okparapharmacie.ma',
+    telephone: '+212600000000',
+    whatsapp: '+212600000000',
+    adresse: 'Lot Mebrouk N°7, Rue Jounaid, El Maarif, Casablanca',
+    instagram_url: 'https://www.instagram.com/ok.parapharmacie/',
     frais_livraison: '30',
     livraison_gratuite_a_partir: '500',
     devise: 'MAD',
@@ -28,17 +28,17 @@ export default function AdminSettingsPage() {
       const { data } = await supabase.from('site_settings').select('*').eq('id', 1).maybeSingle();
       if (data) {
         const s = data as SiteSettingsRow;
-        setForm({
-          nom_boutique: s.nom_boutique ?? '',
-          email: s.email ?? '',
-          telephone: s.telephone ?? '',
-          whatsapp: s.whatsapp ?? '',
-          adresse: s.adresse ?? '',
-          instagram_url: s.instagram_url ?? '',
-          frais_livraison: String(s.frais_livraison ?? 30),
-          livraison_gratuite_a_partir: String(s.livraison_gratuite_a_partir ?? 500),
-          devise: s.devise ?? 'MAD',
-        });
+        setForm((f) => ({
+          nom_boutique: s.nom_boutique || f.nom_boutique,
+          email: s.email || f.email,
+          telephone: s.telephone || f.telephone,
+          whatsapp: s.whatsapp || f.whatsapp,
+          adresse: s.adresse || f.adresse,
+          instagram_url: s.instagram_url || f.instagram_url,
+          frais_livraison: String(s.frais_livraison ?? f.frais_livraison),
+          livraison_gratuite_a_partir: String(s.livraison_gratuite_a_partir ?? f.livraison_gratuite_a_partir),
+          devise: s.devise || f.devise,
+        }));
       }
       setLoading(false);
     })();

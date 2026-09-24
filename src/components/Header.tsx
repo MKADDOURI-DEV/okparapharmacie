@@ -5,7 +5,10 @@ import AppLogo from '@/components/ui/AppLogo';
 import Icon from '@/components/ui/AppIcon';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
-import { CATEGORIES } from '@/lib/mockData';
+import { createClient } from '@/lib/supabase/client';
+import { fetchCategories } from '@/lib/supabase/adapters';
+import type { Category } from '@/lib/mockData';
+import type { SiteSettingsRow } from '@/lib/supabase/types';
 
 export default function Header() {
   const { totalItems, dispatch: cartDispatch } = useCart();
@@ -14,6 +17,24 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [freeShipping, setFreeShipping] = useState(500);
+  const [devise, setDevise] = useState('DH');
+
+  useEffect(() => {
+    fetchCategories().then(setCategories);
+    const supabase = createClient();
+    supabase
+      .from('site_settings')
+      .select('livraison_gratuite_a_partir, devise')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const s = data as Pick<SiteSettingsRow, 'livraison_gratuite_a_partir' | 'devise'> | null;
+        if (s?.livraison_gratuite_a_partir) setFreeShipping(s.livraison_gratuite_a_partir);
+        if (s?.devise) setDevise(s.devise === 'MAD' ? 'DH' : s.devise);
+      });
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 20);
@@ -31,7 +52,7 @@ export default function Header() {
     <>
       {/* Announcement Bar */}
       <div className="announcement-bar text-primary-foreground text-xs font-semibold py-2 text-center px-4">
-        🚚 Livraison gratuite dès 500 د.م. · Paiement à la livraison · Produits 100% authentiques
+        🚚 Livraison gratuite dès {freeShipping} {devise} · Paiement à la livraison · Produits 100% authentiques
       </div>
 
       <header className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-nav' : 'bg-white'} border-b border-border`}>
@@ -53,7 +74,7 @@ export default function Header() {
                 Catégories <Icon name="ChevronDownIcon" size={14} />
               </button>
               <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-border p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                {CATEGORIES?.map(cat => (
+                {categories?.map(cat => (
                   <Link
                     key={cat?.id}
                     href="/product-catalog"
@@ -155,7 +176,7 @@ export default function Header() {
                 <Icon name="HomeIcon" size={18} className="text-primary" /> Accueil
               </Link>
               <p className="px-4 pt-3 pb-1 text-xs font-bold text-muted-foreground uppercase tracking-wider">Catégories</p>
-              {CATEGORIES?.map(cat => (
+              {categories?.map(cat => (
                 <Link
                   key={cat?.id}
                   href="/product-catalog"
