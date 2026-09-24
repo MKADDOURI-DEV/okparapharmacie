@@ -65,6 +65,31 @@ export interface ClientRow {
   created_at: string;
 }
 
+export interface SiteSettingsRow {
+  id: number;
+  nom_boutique: string;
+  email: string | null;
+  telephone: string | null;
+  whatsapp: string | null;
+  adresse: string | null;
+  instagram_url: string | null;
+  frais_livraison: number;
+  livraison_gratuite_a_partir: number;
+  devise: string;
+  hero_title: string;
+  hero_subtitle: string;
+  cta_text: string;
+  sections: {
+    featured?: boolean;
+    bestsellers?: boolean;
+    promo_banner?: boolean;
+    brands?: boolean;
+    testimonials?: boolean;
+    newsletter?: boolean;
+  };
+  updated_at: string;
+}
+
 export function slugify(text: string): string {
   return text
     .toString()

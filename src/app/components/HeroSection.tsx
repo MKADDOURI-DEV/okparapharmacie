@@ -1,11 +1,35 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { createClient } from '@/lib/supabase/client';
+import type { SiteSettingsRow } from '@/lib/supabase/types';
+
+const DEFAULT_TITLE = 'Votre beauté, soignée avec soin.';
+const DEFAULT_SUBTITLE = 'Découvrez les meilleures marques européennes — CeraVe, Bioderma, La Roche-Posay, Vichy — livrées partout au Maroc. Paiement à la livraison.';
+const DEFAULT_CTA = 'Découvrir nos produits';
 
 export default function HeroSection() {
   const heroRef = useRef<HTMLDivElement>(null);
+  const [title, setTitle] = useState(DEFAULT_TITLE);
+  const [subtitle, setSubtitle] = useState(DEFAULT_SUBTITLE);
+  const [ctaText, setCtaText] = useState(DEFAULT_CTA);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('site_settings')
+      .select('hero_title, hero_subtitle, cta_text')
+      .eq('id', 1)
+      .maybeSingle()
+      .then(({ data }) => {
+        const s = data as Pick<SiteSettingsRow, 'hero_title' | 'hero_subtitle' | 'cta_text'> | null;
+        if (s?.hero_title) setTitle(s.hero_title);
+        if (s?.hero_subtitle) setSubtitle(s.hero_subtitle);
+        if (s?.cta_text) setCtaText(s.cta_text);
+      });
+  }, []);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -44,19 +68,25 @@ export default function HeroSection() {
           </div>
 
           {/* Headline */}
-          <h1 className="font-display text-hero-xl text-foreground leading-[0.88] tracking-tight animate-fade-up" style={{ animationDelay: '100ms' }}>
-            Votre beauté,{' '}
-            <span className="italic text-primary relative inline-block">
-              soignée
-              <svg className="absolute w-full -bottom-1 left-0 text-accent" viewBox="0 0 200 12" preserveAspectRatio="none">
-                <path d="M0 8 Q 100 14 200 8" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-              </svg>
-            </span>{' '}
-            <br />avec soin.
-          </h1>
+          {title === DEFAULT_TITLE ? (
+            <h1 className="font-display text-hero-xl text-foreground leading-[0.88] tracking-tight animate-fade-up" style={{ animationDelay: '100ms' }}>
+              Votre beauté,{' '}
+              <span className="italic text-primary relative inline-block">
+                soignée
+                <svg className="absolute w-full -bottom-1 left-0 text-accent" viewBox="0 0 200 12" preserveAspectRatio="none">
+                  <path d="M0 8 Q 100 14 200 8" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                </svg>
+              </span>{' '}
+              <br />avec soin.
+            </h1>
+          ) : (
+            <h1 className="font-display text-hero-xl text-foreground leading-[0.95] tracking-tight animate-fade-up" style={{ animationDelay: '100ms' }}>
+              {title}
+            </h1>
+          )}
 
           <p className="text-lg text-muted-foreground font-light leading-relaxed max-w-lg animate-fade-up" style={{ animationDelay: '200ms' }}>
-            Découvrez les meilleures marques européennes — CeraVe, Bioderma, La Roche-Posay, Vichy — livrées partout au Maroc. Paiement à la livraison.
+            {subtitle}
           </p>
 
           {/* CTAs */}
@@ -65,7 +95,7 @@ export default function HeroSection() {
               href="/product-catalog"
               className="shimmer-btn relative overflow-hidden inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-semibold text-sm hover:opacity-90 transition-opacity shadow-card-hover">
               
-              Découvrir nos produits
+              {ctaText}
               <Icon name="ArrowRightIcon" size={16} />
             </Link>
             <Link
