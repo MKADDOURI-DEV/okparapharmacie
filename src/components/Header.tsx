@@ -91,6 +91,7 @@ export default function Header() {
             </div>
             <Link href="/product-catalog" className="hover:text-primary transition-colors">Promotions</Link>
             <Link href="/product-catalog" className="hover:text-primary transition-colors">Nouveautés</Link>
+            <Link href="/services" className="hover:text-primary transition-colors">Services</Link>
           </nav>
 
           {/* Actions */}
@@ -186,6 +187,9 @@ export default function Header() {
                   <span>{cat?.icon}</span> {cat?.name}
                 </Link>
               ))}
+              <Link href="/services" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 mt-2 rounded-xl hover:bg-muted transition-colors font-semibold">
+                <span>🧴</span> Services
+              </Link>
             </nav>
             <div className="px-4 py-4 border-t border-border space-y-2">
               <Link href="#" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors font-medium text-sm">

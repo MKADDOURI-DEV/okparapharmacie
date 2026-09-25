@@ -90,6 +90,20 @@ export interface SiteSettingsRow {
   updated_at: string;
 }
 
+export interface ServiceRow {
+  id: string;
+  nom: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+  duree_minutes: number | null;
+  prix: number;
+  actif: boolean;
+  info_complementaire: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function slugify(text: string): string {
   return text
     .toString()
