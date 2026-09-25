@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { slugify, type ServiceRow } from '@/lib/supabase/types';
+import ImageUploadField from '@/components/ImageUploadField';
 
 const EMPTY_FORM = {
   nom: '',
@@ -193,10 +194,7 @@ export default function AdminServicesPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Slug *</label>
                 <input value={form.slug} onChange={(e) => { setForm((f) => ({ ...f, slug: slugify(e.target.value) })); setSlugTouched(true); }} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Image (URL)</label>
-                <input value={form.image} onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))} placeholder="https://..." className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
-              </div>
+              <ImageUploadField label="Image" value={form.image} onChange={(url) => setForm((f) => ({ ...f, image: url }))} />
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
                 <textarea rows={2} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />

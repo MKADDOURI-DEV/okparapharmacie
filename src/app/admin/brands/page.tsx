@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { slugify, type MarqueRow } from '@/lib/supabase/types';
+import ImageUploadField from '@/components/ImageUploadField';
 
 interface BrandWithCount extends MarqueRow {
   productCount: number;
@@ -168,10 +169,7 @@ export default function AdminBrandsPage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1">Slug *</label>
                 <input value={form.slug} onChange={(e) => { setForm((f) => ({ ...f, slug: slugify(e.target.value) })); setSlugTouched(true); }} className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Logo (URL)</label>
-                <input value={form.logo} onChange={(e) => setForm((f) => ({ ...f, logo: e.target.value }))} placeholder="https://..." className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
-              </div>
+              <ImageUploadField label="Logo" value={form.logo} onChange={(url) => setForm((f) => ({ ...f, logo: url }))} />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setModalOpen(false)} className="px-4 py-2.5 text-sm font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Annuler</button>
